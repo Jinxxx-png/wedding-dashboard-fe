@@ -1,0 +1,10 @@
+# Netlify redirects (copied into dist/ by Vite, so they work for Git and drag-and-drop deploys).
+
+# Proxy the API through this site so the browser treats it as same-origin. The backend's
+# HTTP-only session cookie then becomes first-party and works in every browser, including
+# Safari/iOS, which blocks cross-site cookies. Keep VITE_API_BASE_URL unset in Netlify so the
+# app calls the default relative /api/v1.
+/api/*  https://wedding-dashboard-be.onrender.com/api/:splat  200!
+
+# SPA fallback: let React Router handle deep links like /dashboard on refresh.
+/*  /index.html  200
