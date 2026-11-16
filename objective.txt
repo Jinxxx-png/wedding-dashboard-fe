@@ -1,0 +1,729 @@
+# PROJECT: WEDDING PROJECT FRONTEND
+
+Act as a Senior React Frontend Engineer and UI/UX Designer.
+
+Develop a premium, modern, production-ready frontend for a centralized Wedding Management Platform called Wedding Project.
+
+This is a standalone React application.
+
+IMPORTANT:
+- Work only inside the current frontend directory.
+- Do not create or modify the Golang backend.
+- Do not put backend files inside this project.
+- Do not implement a second database.
+- Do not connect directly to Firebase Firestore.
+- All protected data must be retrieved through the Golang REST API.
+- The backend is responsible for authentication, authorization, tenant isolation, and business logic.
+
+The backend and frontend are two completely separate applications.
+
+# 1. TECHNOLOGY STACK
+
+Use:
+
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui
+- React Router
+- TanStack Query
+- Axios
+- Recharts
+- Lucide React
+- React Hook Form
+- Zod
+
+Use TypeScript strict mode.
+
+Use reusable components and maintainable architecture.
+
+# 2. APPLICATION CONFIGURATION
+
+The backend API URL must be configurable through environment variables.
+
+Create:
+
+.env.example
+
+VITE_API_BASE_URL=http://localhost:8080/api/v1
+
+Never hardcode production API URLs.
+
+Configure Axios to:
+- Use the configured API base URL.
+- Send credentials with requests.
+- Handle HTTP errors consistently.
+- Handle expired sessions.
+- Handle unauthorized requests.
+- Support file downloads.
+- Avoid sending requests repeatedly after authentication expires.
+
+Use secure HTTP-only cookie authentication.
+
+Do not store passwords, session IDs, or authentication tokens in localStorage.
+
+# 3. DESIGN DIRECTION
+
+I want a premium SaaS dashboard.
+
+Design inspiration:
+- Linear
+- Stripe Dashboard
+- Vercel
+- Modern SaaS analytics dashboards.
+
+Visual direction:
+
+- Minimalist.
+- Premium and professional.
+- White/light background.
+- Neutral grey surfaces.
+- Subtle borders.
+- Modern typography.
+- Clean spacing.
+- Rounded cards.
+- Consistent visual hierarchy.
+- Professional data tables.
+- Beautiful charts.
+- Responsive layouts.
+
+Use a restrained color palette.
+
+Avoid:
+- Excessive gradients.
+- Excessive animations.
+- Overly colorful dashboards.
+- Generic bootstrap-style layouts.
+- Unnecessary decorative elements.
+
+Use shadcn/ui for consistent components.
+
+The application should look like a commercial SaaS product.
+
+# 4. APPLICATION STRUCTURE
+
+Create separate customer and admin experiences.
+
+Suggested structure:
+
+src/
+  assets/
+  components/
+    ui/
+    charts/
+    tables/
+    forms/
+    shared/
+  layouts/
+    CustomerLayout.tsx
+    AdminLayout.tsx
+    AuthLayout.tsx
+  pages/
+    auth/
+    customer/
+    admin/
+  services/
+    api.ts
+    auth.service.ts
+    customer.service.ts
+    admin.service.ts
+    export.service.ts
+  hooks/
+  contexts/
+  types/
+  utils/
+  routes/
+
+Use reusable layouts and protected routes.
+
+# 5. AUTHENTICATION
+
+Create a modern login page.
+
+Login fields:
+- Username.
+- Password.
+
+No email field is required.
+
+Support:
+- Login.
+- Logout.
+- Session verification.
+- Session expiration.
+- Loading states.
+- Error handling.
+
+After successful login:
+
+Admin:
+Redirect to /admin/dashboard
+
+Customer:
+Redirect to /dashboard
+
+If mustChangePassword is true:
+Redirect to /setup-password
+
+Do not allow users to access dashboard pages before completing password setup.
+
+Create a mandatory first-time password setup page.
+
+Fields:
+- New password.
+- Confirm new password.
+
+Validate:
+- Minimum password length.
+- Password confirmation.
+- Backend validation errors.
+
+Create a change-password page for authenticated customers.
+
+Use a clean authentication layout.
+
+# 6. CUSTOMER DASHBOARD
+
+Customer dashboard navigation:
+
+- Overview
+- RSVP Management
+- Wedding Wishes
+- Guest Management
+- Settings
+
+Customers must only see information belonging to their assigned wedding websites.
+
+If a customer owns multiple websites, provide a website selector in the dashboard header.
+
+Switching websites must reload the relevant dashboard data.
+
+Never assume that frontend filtering provides security. The backend enforces all permissions.
+
+# 7. CUSTOMER OVERVIEW
+
+Create an attractive analytics dashboard.
+
+At the top, display:
+
+1. Total RSVP submissions.
+2. Confirmed RSVP submissions.
+3. Declined RSVP submissions.
+4. Total attending guests.
+5. Total wedding wishes.
+
+Include:
+
+## Attendance summary
+
+Display:
+- Total expected attendees.
+- Confirmed attending guests.
+- Declined guests.
+- Attendance percentage.
+
+Use attractive statistic cards.
+
+IMPORTANT:
+
+Differentiate RSVP submissions from guest counts.
+
+Example:
+
+100 RSVP submissions:
+- 80 attending submissions.
+- 20 declined submissions.
+
+185 attending guests.
+
+Display these separately.
+
+Do not calculate attending guests by counting RSVP submissions.
+
+Use the values returned by the backend analytics API.
+
+## Charts
+
+Create:
+
+1. RSVP submission trend.
+   - Daily.
+   - Weekly.
+   - Monthly.
+
+2. Attendance distribution.
+   - Attending.
+   - Not attending.
+
+3. Guest count distribution.
+
+4. Meal preference distribution, if the data exists.
+
+5. Recent RSVP submissions.
+
+6. Recent wedding wishes.
+
+Include date-range filters where supported by the API.
+
+Charts must have:
+- Responsive layouts.
+- Tooltips.
+- Proper labels.
+- Empty states.
+- Loading skeletons.
+
+Use Recharts.
+
+# 8. RSVP MANAGEMENT
+
+Create a dedicated RSVP management page.
+
+Display a modern data table.
+
+Columns:
+
+- Guest name.
+- Phone number.
+- Attendance status.
+- Number of guests.
+- Meal preference.
+- Submission date.
+- Actions.
+
+Features:
+
+- Search by guest name.
+- Search by phone number.
+- Filter by attendance status.
+- Filter by date.
+- Sorting.
+- Pagination.
+- View full RSVP details.
+
+Create a detailed RSVP view using a modal or dedicated page.
+
+Display:
+- Main guest details.
+- Additional guest details.
+- Number of attendees.
+- Attendance status.
+- Meal preference.
+- Dietary restrictions.
+- Notes.
+- Submission timestamp.
+
+Provide appropriate badges for:
+- Attending.
+- Not attending.
+
+Use server-side pagination and filtering.
+
+Do not fetch every RSVP document into the browser.
+
+# 9. GUEST MANAGEMENT
+
+Create a guest management page.
+
+Display individual guests associated with RSVP submissions.
+
+Features:
+- Guest name.
+- Related RSVP.
+- Guest type.
+- Phone number where applicable.
+- Attendance status.
+- Meal preference.
+- Search.
+- Filtering.
+- Pagination.
+- Export.
+
+If guestDetails is not available from the backend, implement the UI according to the documented API contract rather than inventing data.
+
+# 10. WEDDING WISHES
+
+Create a dedicated wedding wishes page.
+
+Display wishes in a clean and attractive interface.
+
+Each wish should display:
+- Sender name.
+- Message.
+- Submission date.
+
+Features:
+- Search.
+- Sort newest/oldest.
+- Pagination.
+- View full message.
+- Favourite status if supported.
+- Visibility status if supported.
+
+Allow customers to export their wishes.
+
+Only show moderation actions that the backend explicitly permits.
+
+# 11. EXCEL AND CSV EXPORT
+
+This feature is very important.
+
+Create reusable export controls.
+
+Allow customers to export:
+
+1. All RSVP submissions.
+2. Attending RSVP submissions.
+3. Declined RSVP submissions.
+4. Complete guest list.
+5. Wedding wishes.
+6. Attendance summary.
+
+Support:
+- CSV.
+- Excel XLSX.
+
+Use the backend export endpoints whenever available.
+
+The backend is responsible for generating authoritative exports.
+
+The frontend should:
+1. Send the correct export request.
+2. Include the selected filters.
+3. Receive the downloadable file.
+4. Trigger browser download.
+5. Use a meaningful filename.
+
+Example filenames:
+
+luqman-amin-rsvp.xlsx
+luqman-amin-rsvp.csv
+luqman-amin-attendance.xlsx
+luqman-amin-wishes.csv
+
+Create a reusable export dropdown.
+
+Example:
+
+Export
+- Download Excel (.xlsx)
+- Download CSV (.csv)
+
+Show loading feedback while generating exports.
+
+Handle errors properly.
+
+Never generate exports by exposing another customer's data or bypassing backend authorization.
+
+# 12. CUSTOMER SETTINGS
+
+Display:
+
+- Username.
+- Account status.
+- Website name.
+- Website URL.
+- Website slug.
+- Wedding date.
+- Assigned websites.
+
+Allow:
+- Change password.
+- View account information.
+
+Customers cannot:
+- Change their username.
+- Change their assigned website slug.
+- Access another customer's website.
+- Change their role.
+
+Only show editable fields that the backend allows.
+
+# 13. ADMIN DASHBOARD
+
+Create a completely separate admin interface.
+
+Admin sidebar:
+
+- Overview
+- Customers
+- Websites
+- All RSVPs
+- All Wishes
+- Audit Logs
+- Settings
+
+Admin overview cards:
+
+- Total customers.
+- Active customers.
+- Total websites.
+- Active websites.
+- Total RSVP submissions.
+- Total attending guests.
+- Total wedding wishes.
+
+Include:
+- Platform-wide RSVP trends.
+- Global attendance analytics.
+- Latest customer registrations.
+- Latest RSVP submissions.
+- Latest wishes.
+- Website activity.
+
+# 14. CUSTOMER MANAGEMENT
+
+Create a customer management page.
+
+Display:
+
+- Username.
+- Website name.
+- Website slug.
+- Website URL.
+- Account status.
+- Registration date.
+- Total RSVP submissions.
+- Total attending guests.
+- Total wishes.
+
+Admin actions:
+
+- Create customer.
+- View customer.
+- Edit customer.
+- Activate account.
+- Disable account.
+- Reset password.
+- View assigned websites.
+
+## Create customer modal
+
+Fields:
+- Username.
+- Website name.
+- Website slug.
+- Website URL.
+- Wedding date.
+
+When the backend creates the account, display the generated temporary password.
+
+IMPORTANT:
+- Display the password only once.
+- Provide a copy button.
+- Warn the admin to securely deliver the password.
+- Do not save it in browser storage.
+- Do not show it again after closing the dialog.
+
+## Password reset
+
+When admin resets a password:
+- Call the backend reset endpoint.
+- Display the new temporary password once.
+- Explain that the customer must change it on the next login.
+
+# 15. WEBSITE MANAGEMENT
+
+Admin can:
+
+- View all websites.
+- Search websites.
+- Filter by status.
+- View website details.
+- Assign websites to customers.
+- Create websites.
+- Edit websites.
+- Change website slug.
+- Activate or deactivate websites.
+- View website analytics.
+
+Support multiple websites belonging to one customer.
+
+Create a website detail page with:
+- Website information.
+- Owner information.
+- RSVP analytics.
+- Attendance statistics.
+- Wishes.
+- Website status.
+
+# 16. GLOBAL RSVP MANAGEMENT
+
+Admin can see RSVP submissions across all websites.
+
+Create filters for:
+
+- Website.
+- Customer.
+- Guest name.
+- Phone number.
+- Attendance status.
+- Date range.
+
+Display the website name and slug alongside every RSVP.
+
+Allow admin to export global RSVP data to Excel and CSV.
+
+# 17. GLOBAL WISHES MANAGEMENT
+
+Admin can view wishes from every website.
+
+Include:
+- Website filter.
+- Customer filter.
+- Search.
+- Date filtering.
+- Visibility status.
+- Pagination.
+- Export.
+
+Display which website each wish belongs to.
+
+# 18. AUDIT LOGS
+
+Create an admin audit log page.
+
+Display:
+- Admin username.
+- Action.
+- Target.
+- Date and time.
+- Relevant metadata.
+
+Include search and filtering.
+
+Do not expose sensitive backend information.
+
+# 19. API INTEGRATION
+
+Use the documented REST API provided by the separate Golang backend.
+
+Expected base URL:
+
+VITE_API_BASE_URL
+
+Follow the backend Swagger/OpenAPI documentation.
+
+Important:
+- Do not invent backend endpoints if documentation exists.
+- Match actual request and response structures.
+- Create TypeScript interfaces for API responses.
+- Keep API requests in service files.
+- Keep business logic out of UI components.
+- Handle loading, errors and empty states consistently.
+
+If the backend is not yet running:
+- Build the frontend against the documented API contract.
+- Use temporary mock data only for visual development.
+- Keep mock data clearly separated from real API services.
+- Never silently substitute mock data in production.
+
+# 20. RESPONSIVENESS
+
+Desktop:
+- Fixed sidebar.
+- Full analytics layout.
+- Wide data tables.
+
+Tablet:
+- Collapsible sidebar.
+- Responsive cards.
+- Adapted charts.
+
+Mobile:
+- Mobile navigation.
+- Stacked cards.
+- Horizontally scrollable tables or suitable mobile card layouts.
+- Touch-friendly controls.
+
+The application must remain usable on mobile browsers.
+
+# 21. UI STATES
+
+Every page must support:
+
+- Loading skeleton.
+- Empty state.
+- Error state.
+- Success notification.
+- Confirmation dialog.
+- Form validation.
+- Responsive layout.
+
+Avoid blank screens.
+
+Use toast notifications for successful actions and errors.
+
+# 22. TESTING
+
+Implement tests for:
+
+- Login.
+- Password setup.
+- Protected routes.
+- Role-based navigation.
+- API error handling.
+- Website selector.
+- Analytics rendering.
+- RSVP filtering.
+- Export actions.
+- Admin customer management.
+
+Do not expose sensitive information in client-side logs.
+
+# 23. DEVELOPMENT WORKFLOW
+
+Before coding:
+
+1. Inspect the current frontend directory.
+2. Check whether a project already exists.
+3. Create the React application if needed.
+4. Set up Tailwind and shadcn/ui.
+5. Create the folder structure.
+6. Establish TypeScript interfaces.
+7. Create the API service layer.
+8. Create an implementation roadmap.
+
+Build in phases:
+
+Phase 1: Project initialization and design system.
+Phase 2: Authentication and protected routes.
+Phase 3: Customer dashboard.
+Phase 4: RSVP management.
+Phase 5: Wishes management.
+Phase 6: Attendance analytics.
+Phase 7: Excel and CSV export.
+Phase 8: Admin dashboard.
+Phase 9: Customer and website management.
+Phase 10: Global management, audit logs and testing.
+
+After each phase:
+- Run TypeScript checks.
+- Run build.
+- Fix errors.
+- Test responsive layouts.
+- Update README.
+
+# 24. FINAL OBJECTIVE
+
+Deliver a fully functional React dashboard for Wedding Project.
+
+It must have:
+- Customer login.
+- Admin login.
+- Mandatory first-time password setup.
+- Customer dashboard.
+- Attendance analytics.
+- RSVP management.
+- Wedding wishes management.
+- Guest management.
+- Excel and CSV exports.
+- Admin dashboard.
+- Customer management.
+- Website management.
+- Global RSVP and wishes management.
+- Audit logs.
+
+The frontend must communicate exclusively with the separate Golang backend for application data.
+
+Start by inspecting the current directory and presenting the frontend implementation plan before coding.
