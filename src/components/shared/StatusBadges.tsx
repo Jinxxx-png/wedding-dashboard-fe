@@ -1,6 +1,6 @@
-import { CheckCircle2, CircleDashed, Clock, Eye, EyeOff, Lock, Star, XCircle } from 'lucide-react';
+import { CheckCircle2, CircleDashed, Clock, Eye, EyeOff, Lock, ShieldCheck, Star, User, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import type { AccountStatus, AttendanceStatus, GuestType } from '@/types/api';
+import type { AccountStatus, AttendanceStatus, GuestType, Role } from '@/types/api';
 
 export function AttendanceBadge({ status }: { status: AttendanceStatus }) {
   return status === 'attending' ? (
@@ -32,6 +32,18 @@ export function AccountStatusBadge({ status }: { status: AccountStatus }) {
   return (
     <Badge variant="warning">
       <Clock /> Pending setup
+    </Badge>
+  );
+}
+
+export function RoleBadge({ role }: { role: Role }) {
+  return role === 'admin' ? (
+    <Badge variant="info">
+      <ShieldCheck /> Admin
+    </Badge>
+  ) : (
+    <Badge variant="outline">
+      <User /> Customer
     </Badge>
   );
 }

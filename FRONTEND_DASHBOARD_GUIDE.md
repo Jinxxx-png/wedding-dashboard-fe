@@ -413,6 +413,7 @@ export const admin = {
   resetPassword: (id: string) => post<T.ResetPasswordResult>(`/admin/users/${enc(id)}/reset-password`),
   disableUser: (id: string) => post<T.UserView>(`/admin/users/${enc(id)}/disable`),
   activateUser: (id: string) => post<T.UserView>(`/admin/users/${enc(id)}/activate`),
+  changeRole: (id: string, body: { role: T.Role }) => post<T.UserDetail>(`/admin/users/${enc(id)}/role`, body),
   revokeSessions: (id: string) => post<{ sessionsRevoked: number }>(`/admin/users/${enc(id)}/revoke-sessions`),
   websites: (q?: { page?: number; pageSize?: number; ownerUserId?: string; isActive?: boolean; search?: string }) =>
     getPage<T.WebsiteView>('/admin/websites', q as any),
@@ -493,12 +494,12 @@ export interface AdminWebsiteUpdate {
 - On success the backend revokes the temporary credential and all old sessions.
 
 ### 5.4 Password policy (validate client-side too; the server is authoritative)
+Deliberately lenient. This is a wedding dashboard, not a bank.
 - 8–128 characters
-- at least 5 different characters
-- must not contain the username (case-insensitive)
-- not a common password; no leading/trailing spaces
+- not one of a short list of very common passwords (`password123`, `12345678`, …); no leading/trailing spaces
 - setup: must differ from the temporary password. Change: must differ from the current password.
 - `confirmPassword` must equal `newPassword`
+- **Removed:** the "at least 5 different characters" rule and the "must not contain the username" rule.
 
 Errors come back as `422 VALIDATION_ERROR` with `details: [{ field: "newPassword", message: "must be at least 8 characters" }, …]`. Show every message under the field.
 
@@ -605,6 +606,8 @@ User counts (total, customers, admins, active, disabled, pending setup), website
 
 ### 8.2 Users list (`GET /admin/users`)
 Filters: `role`, `accountStatus`, `search` (username prefix), pagination. Badges: status, `mustChangePassword`, `isLocked`.
+Without `role` the list contains **every account (admins and customers)**. The dashboard's **Accounts** page (`/admin/accounts`) uses this.
+The **Customers** page always sends `role=customer`.
 
 ### 8.3 Create customer (`POST /admin/users`)
 Form → creates the customer and, optionally, their first website in one step:
@@ -629,6 +632,14 @@ Shows the user plus `websites`. Actions:
 - **Reset password** (`POST …/reset-password`): returns a new one-time `temporaryPassword` (same once-only modal). Logs the user out everywhere. Not allowed on yourself.
 - **Disable** (`POST …/disable`) / **Activate** (`POST …/activate`). Disable logs the user out immediately. Not allowed on yourself.
 - **Revoke sessions** (`POST …/revoke-sessions`): force logout.
+- **Change role** (`POST …/role { "role": "admin" | "customer" }`) → `UserDetail`. Rules:
+  - Not allowed on yourself → `400 BAD_REQUEST`.
+  - Demoting the last active (non-disabled) admin → `409 LAST_ADMIN`.
+  - Same role as now → `200`, no change, no audit entry.
+  - Promoting a customer **unassigns every website they own** (admins can't own websites). The public wedding sites keep working.
+  - The target user is signed out everywhere, and their next sign-in routes them by the new role.
+  - Works for `active`, `disabled` and `pending_password_setup` accounts; the account status is unchanged.
+  - Audit: `admin.user.role_change` with metadata `{ username, from, to, unassignedWebsiteIds }`.
 
 ### 8.5 Websites list / create (`GET`, `POST /admin/websites`)
 Filters: `ownerUserId`, `isActive`, `search` (slug prefix). Create body: `websiteName`, `slug`, `websiteUrl`, optional `ownerUserId` (must be a customer), `weddingDate`, `timezone`, `isActive`.
@@ -655,7 +666,7 @@ Same shape as website analytics plus `websites: WebsiteSummary[]` (per-website t
 
 ### 8.9 Audit logs (`GET /admin/audit-logs`)
 Filters: `actorUserId`, `action`, `targetType`, `targetId`, `from`, `to`, pagination (newest first). Action values:
-`auth.login.success`, `auth.login.failed`, `auth.login.locked`, `auth.logout`, `auth.logout_all`, `auth.password.setup`, `auth.password.change`, `admin.bootstrap`, `admin.user.create`, `admin.user.update`, `admin.user.reset_password`, `admin.user.disable`, `admin.user.activate`, `admin.user.revoke_sessions`, `admin.user.assign_websites`, `admin.website.create`, `admin.website.update`, `admin.website.slug_change`, `admin.website.owner_change`, `admin.website.rotate_secret`, `admin.website.recompute_stats`, `website.settings.update`, `rsvp.update`, `rsvp.delete`, `wish.update`, `wish.delete`, `data.export`, `user.settings.update`.
+`auth.login.success`, `auth.login.failed`, `auth.login.locked`, `auth.logout`, `auth.logout_all`, `auth.password.setup`, `auth.password.change`, `admin.bootstrap`, `admin.user.create`, `admin.user.update`, `admin.user.reset_password`, `admin.user.disable`, `admin.user.activate`, `admin.user.revoke_sessions`, `admin.user.assign_websites`, `admin.user.role_change`, `admin.website.create`, `admin.website.update`, `admin.website.slug_change`, `admin.website.owner_change`, `admin.website.rotate_secret`, `admin.website.recompute_stats`, `website.settings.update`, `rsvp.update`, `rsvp.delete`, `wish.update`, `wish.delete`, `data.export`, `user.settings.update`.
 Show `metadata` as a small key/value list.
 
 ### 8.10 Global exports
@@ -676,6 +687,7 @@ Every error: `{ success: false, error: { code, message, details? }, requestId }`
 | 403 | `CSRF_INVALID` | Client refreshes the token and retries once; if it persists → re-login |
 | 404 | `NOT_FOUND` | Not-found state (also for websites the user doesn't own) |
 | 409 | `USERNAME_TAKEN` / `SLUG_TAKEN` / `CONFLICT` | Show on the relevant field |
+| 409 | `LAST_ADMIN` | Toast: "At least one active admin must remain" (role change) |
 | 413 | `PAYLOAD_TOO_LARGE` | "Too much data" |
 | 422 | `VALIDATION_ERROR` | Map `details[].field` → form fields (paths like `rsvpSettings.mealOptions`, `guestDetails[1].name`) |
 | 429 | `RATE_LIMITED` / `ACCOUNT_LOCKED` | Show wait time from `Retry-After` |
@@ -726,7 +738,7 @@ Every error: `{ success: false, error: { code, message, details? }, requestId }`
 ```json
 { "success": false, "error": { "code": "VALIDATION_ERROR", "message": "request validation failed",
   "details": [ { "field": "newPassword", "message": "must be at least 8 characters" },
-               { "field": "newPassword", "message": "must not contain your username" } ] },
+               { "field": "newPassword", "message": "is too common" } ] },
   "requestId": "ESGqrB-y-s3z3bhA" }
 ```
 

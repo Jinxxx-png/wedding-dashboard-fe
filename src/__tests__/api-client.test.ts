@@ -68,7 +68,7 @@ describe('API client', () => {
           message: 'request validation failed',
           details: [
             { field: 'newPassword', message: 'must be at least 8 characters' },
-            { field: 'newPassword', message: 'must not contain your username' },
+            { field: 'newPassword', message: 'is too common' },
           ],
         },
         requestId: 'req-1',
@@ -81,7 +81,7 @@ describe('API client', () => {
     expect(e.code).toBe('VALIDATION_ERROR');
     expect(e.requestId).toBe('req-1');
     expect(e.fieldErrors().newPassword).toContain('at least 8 characters');
-    expect(e.fieldErrors().newPassword).toContain('must not contain your username');
+    expect(e.fieldErrors().newPassword).toContain('is too common');
   });
 
   it('maps network failures to a friendly message', async () => {

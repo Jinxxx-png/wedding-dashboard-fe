@@ -82,7 +82,7 @@ function EditForm({ user, onDone }: { user: UserDetail; onDone: () => void }) {
     try {
       await adminService.updateUser(user.id, body);
       await queryClient.invalidateQueries({ queryKey: ['admin'] });
-      toast.success('Customer updated');
+      toast.success(user.role === 'admin' ? 'Admin account updated' : 'Customer updated');
       onDone();
     } catch (error) {
       const rest = applyServerErrors(error, setError, {
@@ -96,8 +96,12 @@ function EditForm({ user, onDone }: { user: UserDetail; onDone: () => void }) {
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-5">
       <DialogHeader>
-        <DialogTitle>Edit customer</DialogTitle>
-        <DialogDescription>Update account details and the websites this customer owns.</DialogDescription>
+        <DialogTitle>{user.role === 'admin' ? 'Edit admin account' : 'Edit customer'}</DialogTitle>
+        <DialogDescription>
+          {user.role === 'admin'
+            ? 'Update the username and display name. Use Make customer on the Accounts page to change the role.'
+            : 'Update account details and the websites this customer owns.'}
+        </DialogDescription>
       </DialogHeader>
       {formError && (
         <Alert variant="destructive">

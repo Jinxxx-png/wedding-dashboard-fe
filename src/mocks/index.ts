@@ -88,11 +88,12 @@ function paginate<T>(items: T[], q: Q) {
   return ok(slice, { page, pageSize, totalItems, totalPages, hasNext: page < totalPages });
 }
 
-function checkPassword(pwd: string, confirm: string, username: string, previous?: string): FieldError[] {
+// Mirrors the relaxed backend policy: length + no surrounding spaces (no unique-character or username rules).
+function checkPassword(pwd: string, confirm: string, previous?: string): FieldError[] {
   const errs: FieldError[] = [];
   if (pwd.length < 8) errs.push({ field: 'newPassword', message: 'must be at least 8 characters' });
-  if (new Set(pwd).size < 5) errs.push({ field: 'newPassword', message: 'must contain at least 5 different characters' });
-  if (pwd.toLowerCase().includes(username.toLowerCase())) errs.push({ field: 'newPassword', message: 'must not contain your username' });
+  if (pwd.length > 128) errs.push({ field: 'newPassword', message: 'must be at most 128 characters' });
+  if (pwd !== pwd.trim()) errs.push({ field: 'newPassword', message: 'must not start or end with a space' });
   if (previous && pwd === previous) errs.push({ field: 'newPassword', message: 'must differ from your current password' });
   if (pwd !== confirm) errs.push({ field: 'confirmPassword', message: 'must match the new password' });
   return errs;
@@ -254,7 +255,7 @@ route('POST', '/auth/logout-all', ({ user }) => {
 });
 route('POST', '/auth/password/setup', ({ user, body }) => {
   const u = user!;
-  const errs = checkPassword(String(body.newPassword ?? ''), String(body.confirmPassword ?? ''), u.username, db.passwords.get(u.id));
+  const errs = checkPassword(String(body.newPassword ?? ''), String(body.confirmPassword ?? ''), db.passwords.get(u.id));
   if (errs.length) return validation(errs);
   db.passwords.set(u.id, String(body.newPassword));
   Object.assign(u, { mustChangePassword: false, accountStatus: 'active', temporaryPasswordExpiresAt: undefined, passwordChangedAt: nowIso(), updatedAt: nowIso() });
@@ -265,7 +266,7 @@ route('POST', '/auth/password/setup', ({ user, body }) => {
 route('POST', '/auth/password/change', ({ user, body }) => {
   const u = user!;
   if (db.passwords.get(u.id) !== body.currentPassword) return validation([{ field: 'currentPassword', message: 'is incorrect' }]);
-  const errs = checkPassword(String(body.newPassword ?? ''), String(body.confirmPassword ?? ''), u.username, db.passwords.get(u.id));
+  const errs = checkPassword(String(body.newPassword ?? ''), String(body.confirmPassword ?? ''), db.passwords.get(u.id));
   if (errs.length) return validation(errs);
   db.passwords.set(u.id, String(body.newPassword));
   u.passwordChangedAt = nowIso();
@@ -570,6 +571,28 @@ route('POST', '/admin/users/:id/activate', ({ user, params }) => {
   u.accountStatus = u.mustChangePassword ? 'pending_password_setup' : 'active';
   audit(user, 'admin.user.activate', 'user', u.id, { username: u.username });
   return ok(u);
+}, A);
+route('POST', '/admin/users/:id/role', ({ user, params, body }) => {
+  const u = db.users.find((x) => x.id === params.id);
+  if (!u) return fail(404, 'NOT_FOUND', 'user not found');
+  const keys = Object.keys(body);
+  if (keys.some((k) => k !== 'role')) return validation(keys.filter((k) => k !== 'role').map((k) => ({ field: k, message: 'unknown field' })));
+  const role = body.role;
+  if (role !== 'admin' && role !== 'customer') return validation([{ field: 'role', message: 'must be one of: admin, customer' }]);
+  if (u.id === user!.id) return fail(400, 'BAD_REQUEST', 'you cannot change your own role');
+  const detail = () => ok({ ...u, websites: db.websites.filter((w) => w.ownerUserId === u.id) });
+  if (u.role === role) return detail();
+  if (u.role === 'admin') {
+    const otherActiveAdmins = db.users.filter((x) => x.role === 'admin' && x.id !== u.id && x.accountStatus !== 'disabled');
+    if (otherActiveAdmins.length === 0) return fail(409, 'LAST_ADMIN', 'at least one active admin must remain');
+  }
+  // Admins can't own websites: promoting a customer unassigns theirs.
+  const unassignedWebsiteIds = role === 'admin' ? db.websites.filter((w) => w.ownerUserId === u.id).map((w) => w.id) : [];
+  for (const w of db.websites) if (unassignedWebsiteIds.includes(w.id)) w.ownerUserId = '';
+  const from = u.role;
+  Object.assign(u, { role, websiteIds: role === 'admin' ? [] : u.websiteIds, updatedAt: nowIso() });
+  audit(user, 'admin.user.role_change', 'user', u.id, { username: u.username, from, to: role, unassignedWebsiteIds });
+  return detail();
 }, A);
 route('POST', '/admin/users/:id/revoke-sessions', ({ user, params }) => {
   audit(user, 'admin.user.revoke_sessions', 'user', params.id!);

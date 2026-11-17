@@ -185,6 +185,8 @@ export function createDb(): MockDb {
   });
   const hafiz = makeUser({ id: 'u_hafiz', username: 'hafiz.n', role: 'customer', createdAt: iso(now - 160 * DAY) });
   const daniel = makeUser({ id: 'u_daniel', username: 'daniel', role: 'customer', accountStatus: 'disabled', createdAt: iso(now - 70 * DAY) });
+  // A second admin so role changes (including demoting an admin) can be tried in mock mode.
+  const aina = makeUser({ id: 'u_aina', username: 'aina.ops', role: 'admin', settings: { ...defaultSettings(), displayName: 'Aina (Operations)' }, createdAt: iso(now - 40 * DAY) });
 
   const w1 = makeWebsite({ id: 'w_luqman_amin', slug: 'luqman-amin', websiteName: 'Luqman & Amin', ownerUserId: luqman.id, weddingDate: isoDate(now + 38 * DAY) });
   const w2 = makeWebsite({
@@ -220,6 +222,7 @@ export function createDb(): MockDb {
 
   const passwords = new Map<string, string>([
     [admin.id, 'admin-dev-passphrase'],
+    [aina.id, 'admin-dev-passphrase'],
     [luqman.id, 'customer-dev-passphrase'],
     [sarah.id, 'abacus-ladder-mosaic-velvet-orbit-prism-harbor-quill'],
     [hafiz.id, 'customer-dev-passphrase'],
@@ -258,7 +261,7 @@ export function createDb(): MockDb {
   auditLogs.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return {
-    users: [admin, luqman, sarah, hafiz, daniel],
+    users: [admin, aina, luqman, sarah, hafiz, daniel],
     passwords,
     websites: [w1, w2, w3, w4, w5, w6],
     rsvps: [...r1, ...r2, ...r3, ...r4, ...r5],

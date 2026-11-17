@@ -7,6 +7,7 @@ import {
   ScrollText,
   Settings,
   ShieldCheck,
+  UserCog,
   Users,
 } from 'lucide-react';
 import { DashboardShell, type NavItem } from './DashboardShell';
@@ -14,6 +15,7 @@ import { DashboardShell, type NavItem } from './DashboardShell';
 export const ADMIN_NAV: NavItem[] = [
   { to: '/admin/dashboard', label: 'Overview', icon: LayoutDashboard },
   { to: '/admin/customers', label: 'Customers', icon: Users },
+  { to: '/admin/accounts', label: 'Accounts', icon: UserCog },
   { to: '/admin/websites', label: 'Websites', icon: Globe },
   { to: '/admin/rsvps', label: 'All RSVPs', icon: ClipboardList },
   { to: '/admin/wishes', label: 'All Wishes', icon: MessageSquareHeart },

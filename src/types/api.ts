@@ -451,6 +451,14 @@ export interface UpdateUserInput {
   websiteIds?: string[];
 }
 
+/**
+ * `POST /admin/users/:id/role`. Promoting a customer to admin unassigns the websites they own (admins can't own
+ * websites). The target is signed out everywhere. Not allowed on yourself; the last active admin can't be demoted.
+ */
+export interface ChangeRoleInput {
+  role: Role;
+}
+
 export interface CreateWebsiteInput {
   websiteName: string;
   slug: string;

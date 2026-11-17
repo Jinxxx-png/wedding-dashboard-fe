@@ -80,6 +80,21 @@ describe('Password setup', () => {
     expect(setup).not.toHaveBeenCalled();
   });
 
+  it('accepts simple passwords: no unique-character or username rules', async () => {
+    stubDashboards();
+    const setup = vi
+      .spyOn(authService, 'setupPassword')
+      .mockResolvedValue({ user: makeUser(), csrfToken: 'new', expiresAt: '2099-01-01T00:00:00Z', mustChangePassword: false });
+    const { user } = renderApp('/setup-password', { me: restricted() });
+    // Contains the username ("luqman"), which used to be rejected; the checklist no longer lists either old rule.
+    await user.type(await screen.findByLabelText('New password'), 'luqman1111');
+    await user.type(screen.getByLabelText('Confirm new password'), 'luqman1111');
+    expect(screen.queryByText(/different characters/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/contain your username/i)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /set password/i }));
+    await waitFor(() => expect(setup).toHaveBeenCalledWith('luqman1111', 'luqman1111'));
+  });
+
   it('shows backend validation errors under the field', async () => {
     vi.spyOn(authService, 'setupPassword').mockRejectedValue(
       new ApiError(422, 'VALIDATION_ERROR', 'request validation failed', [{ field: 'newPassword', message: 'is too common' }]),

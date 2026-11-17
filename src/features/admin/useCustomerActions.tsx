@@ -95,7 +95,7 @@ const CONFIRM_COPY = {
   reset: (u: UserView) => ({
     title: `Reset password for ${u.username}?`,
     description:
-      'A new temporary password will be generated and shown once. The customer will be signed out everywhere and must choose a new password at next sign-in.',
+      'A new temporary password will be generated and shown once. They will be signed out everywhere and must choose a new password at next sign-in.',
     confirm: 'Reset password',
   }),
   disable: (u: UserView) => ({
@@ -105,7 +105,7 @@ const CONFIRM_COPY = {
   }),
   activate: (u: UserView) => ({
     title: `Activate ${u.username}?`,
-    description: 'The customer will be able to sign in again.',
+    description: 'They will be able to sign in again.',
     confirm: 'Activate account',
   }),
   revoke: (u: UserView) => ({

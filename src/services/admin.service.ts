@@ -6,6 +6,7 @@ import type {
   AttendanceSummary,
   AuditLog,
   AuditLogQuery,
+  ChangeRoleInput,
   CreateCustomerInput,
   CreateCustomerResult,
   CreateWebsiteInput,
@@ -37,6 +38,7 @@ export const adminService = {
   resetPassword: (id: string): Promise<ResetPasswordResult> => apiPost(`/admin/users/${enc(id)}/reset-password`),
   disableUser: (id: string): Promise<UserView> => apiPost(`/admin/users/${enc(id)}/disable`),
   activateUser: (id: string): Promise<UserView> => apiPost(`/admin/users/${enc(id)}/activate`),
+  changeRole: (id: string, body: ChangeRoleInput): Promise<UserDetail> => apiPost(`/admin/users/${enc(id)}/role`, body),
   revokeSessions: (id: string): Promise<{ sessionsRevoked: number }> =>
     apiPost(`/admin/users/${enc(id)}/revoke-sessions`),
 

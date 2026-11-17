@@ -75,6 +75,7 @@ export const routes: RouteObject[] = [
                     path: 'customers/:userId',
                     element: page(() => import('@/pages/admin/CustomerDetailPage'), 'CustomerDetailPage'),
                   },
+                  { path: 'accounts', element: page(() => import('@/pages/admin/AccountsPage'), 'AccountsPage') },
                   { path: 'websites', element: page(() => import('@/pages/admin/WebsitesPage'), 'WebsitesPage') },
                   {
                     path: 'websites/:websiteId',

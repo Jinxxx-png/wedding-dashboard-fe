@@ -34,8 +34,8 @@ export const PasswordInput = forwardRef<HTMLInputElement, ComponentProps<'input'
 });
 
 /** Live checklist of the password policy (the server stays authoritative). */
-export function PasswordChecklist({ password, username }: { password: string; username?: string }) {
-  const checks = checkPassword(password, username);
+export function PasswordChecklist({ password }: { password: string }) {
+  const checks = checkPassword(password);
   return (
     <ul className="grid gap-1 text-xs sm:grid-cols-2" aria-label="Password requirements">
       {checks.map((c) => (

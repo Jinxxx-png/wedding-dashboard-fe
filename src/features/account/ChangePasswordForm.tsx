@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Loader2 } from 'lucide-react';
@@ -11,6 +11,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { changePasswordSchema } from '@/utils/password';
 import { applyServerErrors } from '@/utils/errors';
 
+const schema = changePasswordSchema();
+
 interface FormValues {
   currentPassword: string;
   newPassword: string;
@@ -20,9 +22,8 @@ interface FormValues {
 const FIELDS = ['currentPassword', 'newPassword', 'confirmPassword'] as const;
 
 export function ChangePasswordForm({ onSuccess }: { onSuccess?: () => void }) {
-  const { user, changePassword } = useAuth();
+  const { changePassword } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
-  const schema = useMemo(() => changePasswordSchema(user?.username), [user?.username]);
 
   const {
     register,
@@ -63,7 +64,7 @@ export function ChangePasswordForm({ onSuccess }: { onSuccess?: () => void }) {
       <FormField label="New password" error={errors.newPassword?.message}>
         <PasswordInput autoComplete="new-password" {...register('newPassword')} />
       </FormField>
-      <PasswordChecklist password={watch('newPassword')} username={user?.username} />
+      <PasswordChecklist password={watch('newPassword')} />
       <FormField label="Confirm new password" error={errors.confirmPassword?.message}>
         <PasswordInput autoComplete="new-password" {...register('confirmPassword')} />
       </FormField>

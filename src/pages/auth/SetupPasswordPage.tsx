@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +14,8 @@ import { setupPasswordSchema } from '@/utils/password';
 import { applyServerErrors } from '@/utils/errors';
 import { formatDateTime } from '@/utils/format';
 
+const schema = setupPasswordSchema();
+
 interface FormValues {
   newPassword: string;
   confirmPassword: string;
@@ -26,7 +28,6 @@ export function SetupPasswordPage() {
   const { user, setupPassword, logout } = useAuth();
   const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
-  const schema = useMemo(() => setupPasswordSchema(user?.username), [user?.username]);
 
   const {
     register,
@@ -82,7 +83,7 @@ export function SetupPasswordPage() {
             <FormField label="New password" error={errors.newPassword?.message}>
               <PasswordInput autoComplete="new-password" autoFocus {...register('newPassword')} />
             </FormField>
-            <PasswordChecklist password={newPassword} username={user?.username} />
+            <PasswordChecklist password={newPassword} />
             <FormField label="Confirm new password" error={errors.confirmPassword?.message}>
               <PasswordInput autoComplete="new-password" {...register('confirmPassword')} />
             </FormField>

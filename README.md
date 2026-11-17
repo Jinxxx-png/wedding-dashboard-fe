@@ -40,6 +40,7 @@ Loads `.env.mock` (`VITE_USE_MOCKS=true`) and installs an **in-memory mock API**
 | Account | Username | Password | Notes |
 |---|---|---|---|
 | Admin | `admin` | `admin-dev-passphrase` | |
+| Admin (second) | `aina.ops` | `admin-dev-passphrase` | Lets you try demoting an admin on **Accounts** |
 | Customer (2 websites) | `luqman` | `customer-dev-passphrase` | Shows the website selector |
 | Customer (temporary password) | `sarah` | `abacus-ladder-mosaic-velvet-orbit-prism-harbor-quill` | Forced to `/setup-password` |
 | Customer (disabled) | `daniel` | `customer-dev-passphrase` | Login is refused |
@@ -158,6 +159,12 @@ src/
   (`meta.totalItems`). "Latest customers" sorts the first page client-side, because the users endpoint has no
   documented sort parameter.
 - **Per-customer stats** on the Customers page come from summing `GET /admin/analytics` → `websites[]` per website.
+- **Accounts page** (`/admin/accounts`): every admin and customer from `GET /admin/users` (no `role` filter). Changing
+  a role uses `POST /admin/users/:id/role`. That endpoint and the relaxed password policy need the backend changes in
+  [`BACKEND_CHANGES.md`](BACKEND_CHANGES.md). Until the backend has them, role changes fail with a toast and the
+  server keeps enforcing the old password rules.
+- **Password policy:** 8–128 characters, not a very common password, no leading/trailing spaces. There is no
+  unique-character rule and no "must not contain the username" rule (`src/utils/password.ts`).
 - **Not built (per the guide):** email login, self sign-up, forgot-password emails, deleting users or websites,
   file uploads, real-time push.
 
@@ -165,17 +172,18 @@ src/
 
 ## Testing
 
-`npm test` runs 48 tests in 7 suites:
+`npm test` runs 60 tests in 8 suites:
 
 | Area | Suite |
 |---|---|
 | API error handling, CSRF retry, 401 short-circuit, filename parsing | `api-client.test.ts` |
-| Login, redirects by role, password setup validation | `auth.test.tsx` |
+| Login, redirects by role, password setup validation (incl. the relaxed policy) | `auth.test.tsx` |
 | Protected routes, role-based navigation | `routing.test.tsx` |
 | Analytics rendering (forms vs guests), empty states, website selector | `customer-dashboard.test.tsx` |
 | RSVP search / status / date / sort / pagination / detail | `rsvp-management.test.tsx` |
 | Export menu, filters and filenames, browser download | `exports.test.tsx` |
 | Admin customer management (create + one-time password, reset, disable) | `admin-customers.test.tsx` |
+| Admin accounts page (all roles, role filter, promote/demote, self-protection, refused changes) | `admin-accounts.test.tsx` |
 
 The setup (`src/test/setup.ts`) includes small jsdom shims: in-memory Web Storage (Node ≥ 25 shadows jsdom's) and a
 `Request` wrapper (React Router passes jsdom's AbortSignal to Node's Request).
