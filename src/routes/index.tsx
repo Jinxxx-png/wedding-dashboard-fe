@@ -46,9 +46,15 @@ export const routes: RouteObject[] = [
                   { path: 'rsvps', element: page(() => import('@/pages/customer/RsvpsPage'), 'RsvpsPage') },
                   { path: 'wishes', element: page(() => import('@/pages/customer/WishesPage'), 'WishesPage') },
                   { path: 'guests', element: page(() => import('@/pages/customer/GuestsPage'), 'GuestsPage') },
-                  { path: 'settings', element: page(() => import('@/pages/customer/SettingsPage'), 'SettingsPage') },
+                  // Account pages stay reachable for customers who have no website assigned yet.
+                  {
+                    path: 'settings',
+                    handle: { websiteOptional: true },
+                    element: page(() => import('@/pages/customer/SettingsPage'), 'SettingsPage'),
+                  },
                   {
                     path: 'change-password',
+                    handle: { websiteOptional: true },
                     element: page(() => import('@/pages/customer/ChangePasswordPage'), 'ChangePasswordPage'),
                   },
                 ],

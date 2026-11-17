@@ -67,7 +67,7 @@ describe('API client', () => {
           code: 'VALIDATION_ERROR',
           message: 'request validation failed',
           details: [
-            { field: 'newPassword', message: 'must be at least 12 characters' },
+            { field: 'newPassword', message: 'must be at least 8 characters' },
             { field: 'newPassword', message: 'must not contain your username' },
           ],
         },
@@ -80,7 +80,7 @@ describe('API client', () => {
     expect(e.status).toBe(422);
     expect(e.code).toBe('VALIDATION_ERROR');
     expect(e.requestId).toBe('req-1');
-    expect(e.fieldErrors().newPassword).toContain('at least 12 characters');
+    expect(e.fieldErrors().newPassword).toContain('at least 8 characters');
     expect(e.fieldErrors().newPassword).toContain('must not contain your username');
   });
 

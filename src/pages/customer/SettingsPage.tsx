@@ -10,7 +10,7 @@ import { InfoList } from '@/components/shared/InfoList';
 import { AccountStatusBadge, ActiveBadge } from '@/components/shared/StatusBadges';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { useAuth } from '@/contexts/AuthContext';
-import { useWebsites, useSelectedWebsite } from '@/contexts/WebsiteContext';
+import { useWebsites } from '@/contexts/WebsiteContext';
 import { ChangePasswordForm } from '@/features/account/ChangePasswordForm';
 import { AccountPreferencesForm } from '@/features/account/AccountPreferencesForm';
 import { LogoutAllCard } from '@/features/account/LogoutAllCard';
@@ -22,8 +22,8 @@ import { SITE_PARAM } from '@/contexts/WebsiteContext';
 
 export function SettingsPage() {
   const { user } = useAuth();
-  const website = useSelectedWebsite();
-  const { websites } = useWebsites();
+  // `website` is null when no website is assigned yet; the Website tab is hidden then.
+  const { websites, website } = useWebsites();
   const queryClient = useQueryClient();
   const settings = useQuery({ queryKey: queryKeys.customer.settings, queryFn: customerService.settings });
   const account = settings.data ?? user;
@@ -34,7 +34,7 @@ export function SettingsPage() {
       <Tabs defaultValue="account">
         <TabsList>
           <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="website">Website</TabsTrigger>
+          {website && <TabsTrigger value="website">Website</TabsTrigger>}
           <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
 
@@ -86,88 +86,90 @@ export function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="website" className="grid gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>{website.websiteName}</CardTitle>
-              <CardDescription>Website details are managed by the administrator and are read-only here.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <InfoList
-                columns={2}
-                items={[
-                  { label: 'Website name', value: website.websiteName },
-                  {
-                    label: 'Website URL',
-                    value: (
-                      <a href={website.websiteUrl} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 underline-offset-4 hover:underline">
-                        {website.websiteUrl} <ExternalLink className="size-3" />
-                      </a>
-                    ),
-                  },
-                  { label: 'Website slug', value: <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{website.slug}</code> },
-                  { label: 'Wedding date', value: formatCalendarDate(website.weddingDate, true) },
-                  { label: 'Timezone', value: website.timezone },
-                  { label: 'Status', value: <ActiveBadge active={website.isActive} /> },
-                ]}
-              />
-            </CardContent>
-          </Card>
-
-          {websites.length > 1 && (
+        {website && (
+          <TabsContent value="website" className="grid gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Assigned websites</CardTitle>
-                <CardDescription>All wedding websites linked to your account.</CardDescription>
+                <CardTitle>{website.websiteName}</CardTitle>
+                <CardDescription>Website details are managed by the administrator and are read-only here.</CardDescription>
               </CardHeader>
               <CardContent>
-                <ul className="divide-y rounded-lg border">
-                  {websites.map((w) => (
-                    <li key={w.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">{w.websiteName}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          /{w.slug} · {formatCalendarDate(w.weddingDate)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {w.id === website.id ? (
-                          <Badge variant="secondary">Selected</Badge>
-                        ) : (
-                          <Link to={`/dashboard/settings?${SITE_PARAM}=${encodeURIComponent(w.id)}`} className="text-xs font-medium underline-offset-4 hover:underline">
-                            Switch
-                          </Link>
-                        )}
-                        <ActiveBadge active={w.isActive} />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <InfoList
+                  columns={2}
+                  items={[
+                    { label: 'Website name', value: website.websiteName },
+                    {
+                      label: 'Website URL',
+                      value: (
+                        <a href={website.websiteUrl} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 underline-offset-4 hover:underline">
+                          {website.websiteUrl} <ExternalLink className="size-3" />
+                        </a>
+                      ),
+                    },
+                    { label: 'Website slug', value: <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{website.slug}</code> },
+                    { label: 'Wedding date', value: formatCalendarDate(website.weddingDate, true) },
+                    { label: 'Timezone', value: website.timezone },
+                    { label: 'Status', value: <ActiveBadge active={website.isActive} /> },
+                  ]}
+                />
               </CardContent>
             </Card>
-          )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>RSVP & wishes settings</CardTitle>
-              <CardDescription>Control how guests interact with {website.websiteName}.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <WebsiteSettingsForm
-                key={website.id + website.updatedAt}
-                website={website}
-                onSave={async (body) => {
-                  const updated = await customerService.updateWebsiteSettings(website.id, body);
-                  queryClient.setQueryData(queryKeys.customer.websites, (prev: typeof websites | undefined) =>
-                    prev?.map((w) => (w.id === updated.id ? updated : w)),
-                  );
-                  await queryClient.invalidateQueries({ queryKey: queryKeys.website.all(website.id) });
-                  return updated;
-                }}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
+            {websites.length > 1 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Assigned websites</CardTitle>
+                  <CardDescription>All wedding websites linked to your account.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="divide-y rounded-lg border">
+                    {websites.map((w) => (
+                      <li key={w.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{w.websiteName}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            /{w.slug} · {formatCalendarDate(w.weddingDate)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {w.id === website.id ? (
+                            <Badge variant="secondary">Selected</Badge>
+                          ) : (
+                            <Link to={`/dashboard/settings?${SITE_PARAM}=${encodeURIComponent(w.id)}`} className="text-xs font-medium underline-offset-4 hover:underline">
+                              Switch
+                            </Link>
+                          )}
+                          <ActiveBadge active={w.isActive} />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>RSVP & wishes settings</CardTitle>
+                <CardDescription>Control how guests interact with {website.websiteName}.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <WebsiteSettingsForm
+                  key={website.id + website.updatedAt}
+                  website={website}
+                  onSave={async (body) => {
+                    const updated = await customerService.updateWebsiteSettings(website.id, body);
+                    queryClient.setQueryData(queryKeys.customer.websites, (prev: typeof websites | undefined) =>
+                      prev?.map((w) => (w.id === updated.id ? updated : w)),
+                    );
+                    await queryClient.invalidateQueries({ queryKey: queryKeys.website.all(website.id) });
+                    return updated;
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="security" className="grid gap-4">
           <Card>

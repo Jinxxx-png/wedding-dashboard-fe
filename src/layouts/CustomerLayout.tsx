@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Outlet } from 'react-router';
+import { Outlet, useMatches } from 'react-router';
 import { ClipboardList, Globe2, LayoutDashboard, MessageSquareHeart, Settings, Users } from 'lucide-react';
 import { DashboardShell, type NavItem } from './DashboardShell';
 import { WebsiteProvider, useWebsites } from '@/contexts/WebsiteContext';
@@ -26,11 +26,12 @@ export function CustomerLayout() {
 
 function CustomerShell() {
   const { websites, website, setWebsiteId, isLoading, error, refetch, linkSearch } = useWebsites();
+  const websiteOptional = useMatches().some((m) => (m.handle as { websiteOptional?: boolean } | undefined)?.websiteOptional);
 
   let content: ReactNode;
   if (isLoading) content = <PageSkeleton />;
   else if (error) content = <ErrorState error={error} onRetry={refetch} />;
-  else if (!website)
+  else if (!website && !websiteOptional)
     content = (
       <EmptyState
         icon={Globe2}
@@ -40,7 +41,7 @@ function CustomerShell() {
       />
     );
   // Remount pages when the website changes so filters and pagination reset cleanly.
-  else content = <Outlet key={website.id} />;
+  else content = <Outlet key={website?.id ?? 'no-website'} />;
 
   return (
     <DashboardShell

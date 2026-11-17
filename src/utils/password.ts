@@ -4,11 +4,48 @@ import { z } from 'zod';
  * Client-side mirror of the backend password policy (guide §5.4).
  * The server remains authoritative — its 422 messages are shown under the field too.
  */
-export const PASSWORD_MIN = 12;
+export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX = 128;
 export const PASSWORD_MIN_UNIQUE = 5;
 
+// Mirrors the backend blocklist (validators/password.go), compared case-insensitively.
 const COMMON_PASSWORDS = new Set([
+  'password',
+  'password1',
+  'password12',
+  'password123',
+  'passw0rd',
+  '12345678',
+  '123456789',
+  '1234567890',
+  '87654321',
+  'qwertyui',
+  'qwerty12',
+  'qwerty123',
+  'qwerty1234',
+  'qwertyuiop',
+  '1q2w3e4r',
+  '1qaz2wsx',
+  'abcd1234',
+  'abc12345',
+  'abcdefgh',
+  'iloveyou',
+  'iloveyou1',
+  'sunshine',
+  'princess',
+  'football',
+  'baseball',
+  'superman',
+  'trustno1',
+  'letmein1',
+  'welcome1',
+  'welcome123',
+  'admin123',
+  'changeme',
+  'wedding123',
+  'weddingwedding',
+  '000000000000',
+  '111111111111',
   'password1234',
   'password12345',
   'passwordpassword',

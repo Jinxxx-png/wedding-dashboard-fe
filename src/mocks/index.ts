@@ -90,7 +90,7 @@ function paginate<T>(items: T[], q: Q) {
 
 function checkPassword(pwd: string, confirm: string, username: string, previous?: string): FieldError[] {
   const errs: FieldError[] = [];
-  if (pwd.length < 12) errs.push({ field: 'newPassword', message: 'must be at least 12 characters' });
+  if (pwd.length < 8) errs.push({ field: 'newPassword', message: 'must be at least 8 characters' });
   if (new Set(pwd).size < 5) errs.push({ field: 'newPassword', message: 'must contain at least 5 different characters' });
   if (pwd.toLowerCase().includes(username.toLowerCase())) errs.push({ field: 'newPassword', message: 'must not contain your username' });
   if (previous && pwd === previous) errs.push({ field: 'newPassword', message: 'must differ from your current password' });
@@ -461,13 +461,22 @@ route('GET', '/admin/users', ({ query }) => {
 route('POST', '/admin/users', ({ user, body }) => {
   const b = body as Record<string, string>;
   const errs: FieldError[] = [];
+  // Website fields are all-or-nothing (like the backend): none of name/slug/URL creates the account only,
+  // a partial set is a 422 on each missing field, and weddingDate is only allowed together with a website.
+  const withWebsite = Boolean(b.websiteName || b.websiteSlug || b.websiteUrl);
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,31}$/.test(b.username ?? '')) errs.push({ field: 'username', message: 'must be 3–32 characters (letters, digits, . _ -)' });
-  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(b.websiteSlug ?? '') || (b.websiteSlug ?? '').length < 3) errs.push({ field: 'websiteSlug', message: 'must be 3–63 lowercase letters, digits and single hyphens' });
-  if (!/^https?:\/\/.+/.test(b.websiteUrl ?? '')) errs.push({ field: 'websiteUrl', message: 'must be an absolute http(s) URL' });
-  if (!b.websiteName) errs.push({ field: 'websiteName', message: 'is required' });
+  if (withWebsite) {
+    for (const f of ['websiteName', 'websiteSlug', 'websiteUrl'] as const) {
+      if (!b[f]) errs.push({ field: f, message: 'is required when creating a website' });
+    }
+    if (b.websiteSlug && (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(b.websiteSlug) || b.websiteSlug.length < 3)) errs.push({ field: 'websiteSlug', message: 'must be 3–63 lowercase letters, digits and single hyphens' });
+    if (b.websiteUrl && !/^https?:\/\/.+/.test(b.websiteUrl)) errs.push({ field: 'websiteUrl', message: 'must be an absolute http(s) URL' });
+  } else if (b.weddingDate) {
+    errs.push({ field: 'weddingDate', message: 'can only be set together with a website' });
+  }
   if (errs.length) return validation(errs);
   if (db.users.some((u) => u.username.toLowerCase() === b.username!.toLowerCase())) return fail(409, 'USERNAME_TAKEN', 'username is already taken');
-  if (db.websites.some((w) => w.slug === b.websiteSlug)) return fail(409, 'SLUG_TAKEN', 'slug is already taken');
+  if (withWebsite && db.websites.some((w) => w.slug === b.websiteSlug)) return fail(409, 'SLUG_TAKEN', 'slug is already taken');
   const pwd = tempPassword();
   const created = nowIso();
   const u: UserView = {
@@ -483,6 +492,12 @@ route('POST', '/admin/users', ({ user, body }) => {
     createdAt: created,
     updatedAt: created,
   };
+  db.users.push(u);
+  db.passwords.set(u.id, pwd);
+  if (!withWebsite) {
+    audit(user, 'admin.user.create', 'user', u.id, { username: u.username });
+    return ok({ user: u, website: null, temporaryPassword: pwd, temporaryPasswordExpiresAt: u.temporaryPasswordExpiresAt });
+  }
   const template = db.websites[0]!;
   const w: WebsiteView = {
     ...structuredClone(template),
@@ -499,9 +514,7 @@ route('POST', '/admin/users', ({ user, body }) => {
     updatedAt: created,
   };
   u.websiteIds = [w.id];
-  db.users.push(u);
   db.websites.push(w);
-  db.passwords.set(u.id, pwd);
   audit(user, 'admin.user.create', 'user', u.id, { username: u.username, websiteSlug: w.slug });
   return ok({ user: u, website: w, temporaryPassword: pwd, temporaryPasswordExpiresAt: u.temporaryPasswordExpiresAt });
 }, A);

@@ -278,12 +278,15 @@ export function CustomersPage() {
         onOpenChange={setCreateOpen}
         onCreated={(result) => {
           setCreateOpen(false);
+          const site = result.website;
           actions.showSecret({
             title: 'Customer created',
-            description: `The account and the website “${result.website.websiteName}” are ready. The customer must set their own password on first sign-in.`,
+            description: site
+              ? `The account and the website “${site.websiteName}” are ready. The customer must set their own password on first sign-in.`
+              : 'The account is ready, with no website yet — assign one later from Edit customer. The customer must set their own password on first sign-in.',
             details: [
               { label: 'Username', value: result.user.username },
-              { label: 'Website', value: `/${result.website.slug}` },
+              { label: 'Website', value: site ? `/${site.slug}` : 'Not assigned yet' },
             ],
             secretLabel: 'Temporary password',
             secret: result.temporaryPassword,

@@ -75,7 +75,7 @@ describe('Password setup', () => {
     await user.type(await screen.findByLabelText('New password'), 'short');
     await user.type(screen.getByLabelText('Confirm new password'), 'different');
     await user.click(screen.getByRole('button', { name: /set password/i }));
-    expect(await screen.findByText('Must be at least 12 characters')).toBeInTheDocument();
+    expect(await screen.findByText('Must be at least 8 characters')).toBeInTheDocument();
     expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
     expect(setup).not.toHaveBeenCalled();
   });

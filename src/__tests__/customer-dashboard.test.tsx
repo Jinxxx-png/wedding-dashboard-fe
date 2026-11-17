@@ -101,3 +101,30 @@ describe('Website selector', () => {
     expect(customerService.analytics).not.toHaveBeenCalledWith('w1', expect.anything());
   });
 });
+
+describe('Customer without a website', () => {
+  const noSite = makeUser({ websiteIds: [] });
+
+  it('explains that no website is assigned yet on website pages', async () => {
+    stubCustomer([]);
+    renderApp('/dashboard/rsvps', { me: makeMe(noSite) });
+    expect(await screen.findByText('No wedding website assigned yet')).toBeInTheDocument();
+    expect(customerService.rsvps).not.toHaveBeenCalled();
+  });
+
+  it('can still open account settings, without the Website tab', async () => {
+    stubCustomer([]);
+    vi.spyOn(customerService, 'settings').mockResolvedValue(noSite);
+    renderApp('/dashboard/settings', { me: makeMe(noSite) });
+    expect(await screen.findByText('Account information')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Security' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Website' })).not.toBeInTheDocument();
+    expect(screen.queryByText('No wedding website assigned yet')).not.toBeInTheDocument();
+  });
+
+  it('can still change their password', async () => {
+    stubCustomer([]);
+    renderApp('/dashboard/change-password', { me: makeMe(noSite) });
+    expect(await screen.findByLabelText('Current password')).toBeInTheDocument();
+  });
+});

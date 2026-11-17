@@ -317,7 +317,8 @@ export interface MeResponse {
 
 export interface CreateCustomerResult {
   user: UserView;
-  website: WebsiteView;
+  /** Absent (or null) when the customer was created without a website. */
+  website?: WebsiteView | null;
   temporaryPassword: string;
   temporaryPasswordExpiresAt: string;
 }
@@ -430,14 +431,18 @@ export interface AccountSettingsInput {
   defaultPageSize?: number;
 }
 
+/**
+ * Website fields are all-or-nothing: send websiteName + websiteSlug + websiteUrl (and optionally weddingDate)
+ * to create the first website too, or none of them to create the account only.
+ */
 export interface CreateCustomerInput {
   username: string;
   displayName?: string;
-  websiteName: string;
-  websiteSlug: string;
-  websiteUrl: string;
-  weddingDate?: string;
   timezone?: string;
+  websiteName?: string;
+  websiteSlug?: string;
+  websiteUrl?: string;
+  weddingDate?: string;
 }
 
 export interface UpdateUserInput {

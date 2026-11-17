@@ -333,7 +333,7 @@ export interface AdminDashboard {
 // ---- Auth / admin results ----
 export interface SessionResponse { user: UserView; csrfToken: string; expiresAt: string; mustChangePassword: boolean }
 export interface MeResponse { user: UserView; csrfToken: string; sessionExpiresAt: string; mustChangePassword: boolean }
-export interface CreateCustomerResult { user: UserView; website: WebsiteView; temporaryPassword: string; temporaryPasswordExpiresAt: string }
+export interface CreateCustomerResult { user: UserView; website: WebsiteView | null /* null when created without one */; temporaryPassword: string; temporaryPasswordExpiresAt: string }
 export interface ResetPasswordResult { user: UserView; temporaryPassword: string; temporaryPasswordExpiresAt: string }
 export interface SigningSecretResult { websiteId: string; keyId: string; secret: string; rotatedAt: string }
 ```
@@ -404,8 +404,8 @@ export const admin = {
   dashboard: () => get<T.AdminDashboard>('/admin/dashboard'),
   users: (q?: { page?: number; pageSize?: number; role?: T.Role; accountStatus?: T.AccountStatus; search?: string }) =>
     getPage<T.UserView>('/admin/users', q as any),
-  createCustomer: (body: { username: string; displayName?: string; websiteName: string; websiteSlug: string;
-                           websiteUrl: string; weddingDate?: string; timezone?: string }) =>
+  createCustomer: (body: { username: string; displayName?: string; websiteName?: string; websiteSlug?: string;
+                           websiteUrl?: string; weddingDate?: string; timezone?: string }) =>
     post<T.CreateCustomerResult>('/admin/users', body),
   user: (id: string) => get<T.UserDetail>(`/admin/users/${enc(id)}`),
   updateUser: (id: string, body: { username?: string; displayName?: string; websiteIds?: string[] }) =>
@@ -493,14 +493,14 @@ export interface AdminWebsiteUpdate {
 - On success the backend revokes the temporary credential and all old sessions.
 
 ### 5.4 Password policy (validate client-side too; the server is authoritative)
-- 12–128 characters
+- 8–128 characters
 - at least 5 different characters
 - must not contain the username (case-insensitive)
 - not a common password; no leading/trailing spaces
 - setup: must differ from the temporary password. Change: must differ from the current password.
 - `confirmPassword` must equal `newPassword`
 
-Errors come back as `422 VALIDATION_ERROR` with `details: [{ field: "newPassword", message: "must be at least 12 characters" }, …]`. Show every message under the field.
+Errors come back as `422 VALIDATION_ERROR` with `details: [{ field: "newPassword", message: "must be at least 8 characters" }, …]`. Show every message under the field.
 
 ### 5.5 Other auth actions
 - **Change password** (account settings): `POST /auth/password/change { currentPassword, newPassword, confirmPassword }`. Wrong current password → `422` with field `currentPassword`. Success rotates the session (new csrfToken) and logs out other devices.
@@ -607,17 +607,19 @@ User counts (total, customers, admins, active, disabled, pending setup), website
 Filters: `role`, `accountStatus`, `search` (username prefix), pagination. Badges: status, `mustChangePassword`, `isLocked`.
 
 ### 8.3 Create customer (`POST /admin/users`)
-Form → creates the customer **and** their first website in one step:
+Form → creates the customer and, optionally, their first website in one step:
 
 | Field | Rules |
 |---|---|
 | `username` | required, 3–32 chars, letters/digits/`.`/`_`/`-`, must start with a letter or digit; unique (case-insensitive) |
 | `displayName` | optional, ≤ 100 |
-| `websiteName` | required, ≤ 150 |
-| `websiteSlug` | required, 3–63 chars, lowercase letters/digits and single hyphens (`ahmad-sarah`); unique; reserved: api, admin, www, public, static, assets, dashboard |
-| `websiteUrl` | required, absolute `http(s)://` URL |
-| `weddingDate` | optional `YYYY-MM-DD` |
+| `websiteName` | required with a website, ≤ 150 |
+| `websiteSlug` | required with a website, 3–63 chars, lowercase letters/digits and single hyphens (`ahmad-sarah`); unique; reserved: api, admin, www, public, static, assets, dashboard |
+| `websiteUrl` | required with a website, absolute `http(s)://` URL |
+| `weddingDate` | optional `YYYY-MM-DD`; only allowed with a website |
 | `timezone` | optional IANA timezone (defaults to server default) |
+
+The website fields are all-or-nothing: send name, slug and URL together, or omit all three (and `weddingDate`) to create the account only. Partial details return `422` on each missing field. Without a website the response has `website: null`; assign one later from the website's owner field or the customer's Edit dialog.
 
 Response contains **`temporaryPassword`, shown only once.** Show a modal with the username and password, a **Copy** button, the expiry (`temporaryPasswordExpiresAt`, 7 days) and a warning that it can't be shown again. Errors: `409 USERNAME_TAKEN`, `409 SLUG_TAKEN`, `422` field errors.
 
@@ -723,7 +725,7 @@ Every error: `{ success: false, error: { code, message, details? }, requestId }`
 **Validation error**
 ```json
 { "success": false, "error": { "code": "VALIDATION_ERROR", "message": "request validation failed",
-  "details": [ { "field": "newPassword", "message": "must be at least 12 characters" },
+  "details": [ { "field": "newPassword", "message": "must be at least 8 characters" },
                { "field": "newPassword", "message": "must not contain your username" } ] },
   "requestId": "ESGqrB-y-s3z3bhA" }
 ```

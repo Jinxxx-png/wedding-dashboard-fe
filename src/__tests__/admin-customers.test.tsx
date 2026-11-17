@@ -17,13 +17,16 @@ function stubAdmin() {
   } as unknown as GlobalAnalytics);
 }
 
-const fillCreateForm = async (user: ReturnType<typeof renderApp>['user']) => {
+const fillCreateForm = async (user: ReturnType<typeof renderApp>['user'], { withWebsite = false } = {}) => {
   const dialog = await screen.findByRole('dialog');
   await user.type(within(dialog).getByLabelText(/^username/i), 'sarah');
-  await user.type(within(dialog).getByLabelText(/^website name/i), 'Ahmad & Sarah');
-  const url = within(dialog).getByLabelText(/^website url/i);
-  await user.clear(url);
-  await user.type(url, 'https://ahmad-sarah.com');
+  if (withWebsite) {
+    await user.click(within(dialog).getByRole('switch', { name: /create a wedding website now/i }));
+    await user.type(within(dialog).getByLabelText(/^website name/i), 'Ahmad & Sarah');
+    const url = within(dialog).getByLabelText(/^website url/i);
+    await user.clear(url);
+    await user.type(url, 'https://ahmad-sarah.com');
+  }
   return dialog;
 };
 
@@ -37,7 +40,47 @@ describe('Admin customer management', () => {
     expect(screen.getAllByText('185').length).toBeGreaterThan(0);
   });
 
-  it('creates a customer and shows the temporary password exactly once', async () => {
+  it('creates a customer without a website by default', async () => {
+    stubAdmin();
+    const create = vi.spyOn(adminService, 'createCustomer').mockResolvedValue({
+      user: makeUser({ id: 'u9', username: 'sarah', websiteIds: [], accountStatus: 'pending_password_setup', mustChangePassword: true }),
+      temporaryPassword: 'abacus-ladder-mosaic-velvet-orbit-prism-harbor-quill',
+      temporaryPasswordExpiresAt: '2026-11-18T00:00:00Z',
+    });
+    const { user } = renderApp('/admin/customers', { me: makeMe(makeAdmin()) });
+    await user.click(await screen.findByRole('button', { name: /create customer/i }));
+    const dialog = await fillCreateForm(user);
+    expect(within(dialog).queryByLabelText(/^website name/i)).not.toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: /create customer/i }));
+
+    // Only the account fields are sent (the API rejects unknown or partial website fields).
+    await waitFor(() => expect(create).toHaveBeenCalledWith({ username: 'sarah' }));
+    expect(await screen.findByTestId('one-time-secret')).toHaveTextContent('abacus-ladder-mosaic');
+    expect(screen.getByText('Not assigned yet')).toBeInTheDocument();
+  });
+
+  it('only validates the website fields while the website switch is on', async () => {
+    stubAdmin();
+    const create = vi.spyOn(adminService, 'createCustomer').mockResolvedValue({
+      user: makeUser({ id: 'u9', username: 'sarah', websiteIds: [] }),
+      temporaryPassword: 'abacus-ladder-mosaic-velvet-orbit-prism-harbor-quill',
+      temporaryPasswordExpiresAt: '2026-11-18T00:00:00Z',
+    });
+    const { user } = renderApp('/admin/customers', { me: makeMe(makeAdmin()) });
+    await user.click(await screen.findByRole('button', { name: /create customer/i }));
+    const dialog = await fillCreateForm(user);
+    const toggle = within(dialog).getByRole('switch', { name: /create a wedding website now/i });
+    await user.click(toggle);
+    await user.click(within(dialog).getByRole('button', { name: /create customer/i }));
+    expect(await within(dialog).findByText('Website name is required')).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+
+    await user.click(toggle);
+    await user.click(within(dialog).getByRole('button', { name: /create customer/i }));
+    await waitFor(() => expect(create).toHaveBeenCalledWith({ username: 'sarah' }));
+  });
+
+  it('creates a customer with a website and shows the temporary password exactly once', async () => {
     stubAdmin();
     const create = vi.spyOn(adminService, 'createCustomer').mockResolvedValue({
       user: makeUser({ id: 'u9', username: 'sarah', accountStatus: 'pending_password_setup', mustChangePassword: true }),
@@ -47,7 +90,7 @@ describe('Admin customer management', () => {
     });
     const { user } = renderApp('/admin/customers', { me: makeMe(makeAdmin()) });
     await user.click(await screen.findByRole('button', { name: /create customer/i }));
-    const dialog = await fillCreateForm(user);
+    const dialog = await fillCreateForm(user, { withWebsite: true });
     // Slug is derived from the website name until edited.
     expect(within(dialog).getByLabelText(/^website slug/i)).toHaveValue('ahmad-sarah');
     await user.click(within(dialog).getByRole('button', { name: /create customer/i }));
@@ -61,6 +104,7 @@ describe('Admin customer management', () => {
       }),
     );
     const secret = await screen.findByTestId('one-time-secret');
+    expect(screen.getByText('/ahmad-sarah')).toBeInTheDocument();
     expect(secret).toHaveTextContent('abacus-ladder-mosaic-velvet-orbit-prism-harbor-quill');
     expect(screen.getByText('This will only be shown once')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /copy/i })).toBeInTheDocument();
